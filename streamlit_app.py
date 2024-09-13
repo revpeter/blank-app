@@ -1,6 +1,6 @@
 import streamlit as st
-import random
-from collections import Counter
+from utils import run_simulations
+from numpy import mean
 
 colorList = [
     "Piros",
@@ -31,9 +31,6 @@ st.set_page_config(
 )
 
 st.title(":rainbow: Színes oszlopok problémája")
-st.write(
-    "Let's start building! For help and inspiration, head over to [docs.streamlit.io](https://docs.streamlit.io/)."
-)
 
 ### Input params ###
 with st.container(border=True):
@@ -53,32 +50,25 @@ with st.container(border=True):
 if hCols >= 2:
     startBtn = st.button("Szimulációk futtatása")
 else:
-    st.button("Szimulációk futtatása", disabled=True)
+    startBtn = st.button("Szimulációk futtatása", disabled=True)
     st.markdown("**Legalább 2 színt ki kell válaszatni.**")
 
 if startBtn:
-    sList = []
-
-    for s in range(nSim):
-        resDict = {i:0 for i in range(1, 1+nCols)}
-
-        for r in range(nRepeat):
-            ### Run simulation ###
-            oneSimRes = [tuple(random.sample(colors, hCols)) for i in range(nCols)]
-            
-            ### Count matches ###
-            countList = Counter(oneSimRes)
-            
-            ### Store results ###
-            for v in countList.values():
-                resDict[v] += 1
-
-        ### Calc at least 2 matches ###
-        sList.append(resDict)
+    exactResults, atleastResults = run_simulations(nSim=nSim, nRepeat=nRepeat, nCols=nCols, hCols=hCols, colors=colors)
     
     st.header("Eredmények", divider=True, anchor=False)
     st.markdown("Az eredményeket külön minden szimulációban kiszámoltuk, majd ezeknek vettük az átlagait.")
 
-    noMatch = round((sum([i[1] / nRepeat for i in sList]) / nSim) * 100, 1)
-    print([i[1] / nRepeat for i in sList])
-    st.markdown(f"Annak az esélye, hogy nincsenek egyező oszlopok {noMatch}%")
+    with st.container(border=True):
+        noMatch = round(mean(exactResults[0])*100, 1)
+        st.markdown(f"Annak az esélye, hogy nincsenek egyező oszlopok: **{noMatch}%**")
+
+    with st.container(border=True):
+        for exact_key in list(exactResults.keys())[:-1]:
+            someMatch = round(mean(exactResults[exact_key])*100, 1)
+            st.markdown(f"Annak az esélye, hogy pontosan {exact_key} oszlop ugyanolyan: **{someMatch}%**")
+
+    with st.container(border=True):
+        for atleast_key in atleastResults.keys():
+            atleastMatch = round(mean(atleastResults[atleast_key])*100, 1)
+            st.markdown(f"Annak az esélye, hogy legalább {atleast_key} oszlop ugyanolyan: **{atleastMatch}%**")
